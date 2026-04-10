@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Percentage Amount Calculator</title>
+
+  <style>
+    body{
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:#f6f7fb;
+      margin:0;
+      padding:24px;
+      color:#111;
+    }
+
+    .card{
+      max-width:460px;
+      margin:auto;
+      background:#fff;
+      border-radius:14px;
+      padding:20px;
+      border:1px solid #e6e8ef;
+      box-shadow:0 6px 18px rgba(0,0,0,.05);
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .flags{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+    }
+
+    .flag{
+      cursor:pointer;
+      font-size:20px;
+      user-select:none;
+      opacity:.45;
+      transition:opacity .12s ease;
+    }
+
+    .flag.active{ opacity:1; }
+
+    h1{ font-size:20px; margin:6px 0 8px; }
+    p{ font-size:14px; margin:0 0 16px; color:#444; }
+
+    /* Κέντρο + συμμετρία inputs */
+    .inputs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      max-width:360px;
+      margin:0 auto;
+    }
+
+    label{
+      font-size:13px;
+      margin-bottom:4px;
+      display:block;
+      color:#333;
+    }
+
+    input{
+      width:100%;
+      padding:10px;
+      font-size:15px;
+      border-radius:10px;
+      border:1px solid #d7dbe7;
+      outline:none;
+      font-variant-numeric: tabular-nums;
+    }
+    input:focus{
+      border-color:#5b8cff;
+      box-shadow:0 0 0 3px rgba(91,140,255,.15);
+    }
+
+    .result{
+      margin-top:16px;
+      padding:12px;
+      text-align:center;
+      background:#f2f6ff;
+      border:1px solid #d9e6ff;
+      border-radius:12px;
+      font-size:16px;
+      font-variant-numeric: tabular-nums;
+      min-height: 22px;
+    }
+
+    .note{
+      margin-top:10px;
+      font-size:12px;
+      color:#666;
+      text-align:center;
+      line-height:1.35;
+    }
+
+    .actions{
+      display:flex;
+      justify-content:center;
+      margin-top:12px;
+    }
+
+    button{
+      border:1px solid #d7dbe7;
+      background:#fff;
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:14px;
+    }
+    button:hover{ background:#f7f8fc; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+
+    <div class="topbar">
+      <div class="flags">
+        <span class="flag" id="flag-gr" title="Ελληνικά">🇬🇷</span>
+        <span class="flag active" id="flag-en" title="English">🇬🇧</span>
+      </div>
+    </div>
+
+    <h1 id="title"></h1>
+    <p id="subtitle"></p>
+
+    <div class="inputs">
+      <div>
+        <label id="label-base" for="base"></label>
+        <input id="base" inputmode="decimal" placeholder="1000" autocomplete="off" />
+      </div>
+
+      <div>
+        <label id="label-pct" for="pct"></label>
+        <input id="pct" inputmode="decimal" placeholder="24" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="result" id="result">—</div>
+
+    <div class="actions">
+      <button id="btn-clear" type="button"></button>
+    </div>
+
+    <div class="note" id="note"></div>
+  </div>
+
+  <script>
+    // -------- Texts (EN default) --------
+    const texts = {
+      en: {
+        title: "Calculate the monetary value of a percentage",
+        subtitle: "Enter an amount and a percentage to get only the percentage amount.",
+        base: "Base amount (€)",
+        pct: "Percentage (%)",
+        clear: "Clear",
+        result: (p, a) => `${p}% equals ${a} €`,
+        note: "This tool calculates only the percentage amount. Add or subtract it manually (VAT, discount, fee, etc.).",
+        idle: "—",
+        hint: "Enter both fields…"
+      },
+      el: {
+        title: "Υπολόγισε πόσο είναι ένα ποσοστό σε χρήματα",
+        subtitle: "Βάλε ποσό και ποσοστό και δες μόνο το ποσό του ποσοστού.",
+        base: "Ποσό βάσης (€)",
+        pct: "Ποσοστό (%)",
+        clear: "Καθαρισμός",
+        result: (p, a) => `Το ${p}% αντιστοιχεί σε ${a} €`,
+        note: "Υπολογίζεται μόνο το ποσό του ποσοστού. Η πρόσθεση ή αφαίρεση (ΦΠΑ/έκπτωση/προμήθεια) γίνεται από τον χρήστη.",
+        idle: "—",
+        hint: "Συμπλήρωσε και τα δύο πεδία…"
+      }
+    };
+
+    // -------- State --------
+    let lang = "en"; // ✅ default English
+
+    // -------- Elements --------
+    const baseInput = document.getElementById("base");
+    const pctInput  = document.getElementById("pct");
+    const resultEl  = document.getElementById("result");
+
+    const flagGR = document.getElementById("flag-gr");
+    const flagEN = document.getElementById("flag-en");
+
+    const btnClear = document.getElementById("btn-clear");
+
+    function setActiveFlag() {
+      flagGR.classList.toggle("active", lang === "el");
+      flagEN.classList.toggle("active", lang === "en");
+    }
+
+    function parseNumber(value) {
+      if (!value) return null;
+      const cleaned = value.trim().replace(/\s+/g, "").replace(",", ".");
+      if (cleaned === "" || cleaned === ".") return null;
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function formatAmount(n) {
+      return n.toLocaleString("el-GR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function updateTexts() {
+      document.documentElement.lang = lang; // σωστό και για accessibility
+      document.title = (lang === "en") ? "Percentage Amount Calculator" : "Ποσοστό σε χρήματα";
+
+      document.getElementById("title").textContent = texts[lang].title;
+      document.getElementById("subtitle").textContent = texts[lang].subtitle;
+      document.getElementById("label-base").textContent = texts[lang].base;
+      document.getElementById("label-pct").textContent = texts[lang].pct;
+      document.getElementById("note").textContent = texts[lang].note;
+      btnClear.textContent = texts[lang].clear;
+
+      setActiveFlag();
+      calculate(); // ανανέωση αποτελέσματος στη νέα γλώσσα
+    }
+
+    function calculate() {
+      const base = parseNumber(baseInput.value);
+      const pct  = parseNumber(pctInput.value);
+
+      if (base === null || pct === null) {
+        resultEl.textContent = texts[lang].hint;
+        return;
+      }
+      if (Number.isNaN(base) || Number.isNaN(pct)) {
+        resultEl.textContent = texts[lang].idle;
+        return;
+      }
+
+      const amount = base * (pct / 100);
+      const amountText = formatAmount(amount);
+      // δείχνουμε το % όπως το έγραψε ο χρήστης (όχι fixed)
+      const pctText = pctInput.value.trim().replace(/\s+/g, "");
+      resultEl.textContent = texts[lang].result(pctText, amountText);
+    }
+
+    // Live update
+    baseInput.addEventListener("input", calculate);
+    pctInput.addEventListener("input", calculate);
+
+    // Language switch
+    flagGR.addEventListener("click", () => { lang = "el"; updateTexts(); });
+    flagEN.addEventListener("click", () => { lang = "en"; updateTexts(); });
+
+    // Clear button
+    btnClear.addEventListener("click", () => {
+      baseInput.value = "";
+      pctInput.value = "";
+      baseInput.focus();
+      resultEl.textContent = texts[lang].idle;
+    });
+
+    // Init
+    updateTexts();
+  </script>
+</body>
+</html>
+``
